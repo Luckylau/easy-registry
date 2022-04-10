@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.alipay.sofa.registry.jdbc.mapper.ClientManagerAddressMapper">
+
+    <resultMap type="com.alipay.sofa.registry.jdbc.domain.ClientManagerAddressDomain" id="clientManagerAddressResultMap">
+        <id property="id" column="id" javaType="long" jdbcType="BIGINT"/>
+        <result property="dataCenter" column="data_center" javaType="java.lang.String" jdbcType="VARCHAR"/>
+        <result property="address" column="address" javaType="java.lang.String" jdbcType="VARCHAR"/>
+        <result property="operation" column="operation" javaType="java.lang.String" jdbcType="VARCHAR"/>
+        <result property="gmtCreate" column="gmt_create" javaType="java.util.Date" jdbcType="TIMESTAMP"/>
+        <result property="gmtModify" column="gmt_modified" javaType="java.util.Date" jdbcType="TIMESTAMP"/>
+        <result property="pub" column="pub" javaType="boolean" jdbcType="TINYINT"/>
+        <result property="sub" column="sub" javaType="boolean" jdbcType="TINYINT"/>
+    </resultMap>
+
+    <update id="update" parameterType="com.alipay.sofa.registry.jdbc.domain.ClientManagerAddressDomain">
+        <![CDATA[
+
+              update client_manager_address set gmt_modified = CURRENT_TIMESTAMP
+              WHERE data_center = #{dataCenter} AND address = #{address} AND operation = #{operation} AND sub = #{sub}
+
+        ]]>
+    </update>
+
+    <insert id="insertOnReplace" parameterType="com.alipay.sofa.registry.jdbc.domain.ClientManagerAddressDomain">
+            <![CDATA[
+                delete from client_manager_address where data_center=#{dataCenter} and address = #{address};
+            ]]>
+            <![CDATA[
+            insert into client_manager_address(data_center, address, operation, gmt_create, gmt_modified, pub, sub)
+            values (#{dataCenter},#{address},#{operation},CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,#{pub},#{sub}) on duplicate key update gmt_modified=CURRENT_TIMESTAMP;
+            ]]>
+    </insert>
+
+    <select id="queryAfterThanByLimit" resultMap="clientManagerAddressResultMap">
+        select * from client_manager_address where data_center = #{dataCenter} and id > #{maxId}
+        order by id limit #{limit}
+    </select>
+
+    <select id="getExpireAddress" resultType="java.lang.String">
+        <![CDATA[
+            select address from client_manager_address where data_center=#{dataCenter} and gmt_modified < #{expireDate}
+            and operation in ('clientOpen','reduce')
+            limit #{limit}
+        ]]>
+    </select>
+
+    <select id="getClientOffSizeBefore" resultType="java.lang.Integer">
+        <![CDATA[
+            select count(1) from client_manager_address where data_center=#{dataCenter} and gmt_modified < #{expireDate} and operation='clientOff'
+        ]]>
+    </select>
+
+    <delete id="cleanExpired">
+        <if test="expireAddress != null and expireAddress.size() > 0">
+            delete from client_manager_address where data_center=#{dataCenter} and address in
+            <foreach collection="expireAddress" index="index" item="item" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+    </delete>
+</mapper>

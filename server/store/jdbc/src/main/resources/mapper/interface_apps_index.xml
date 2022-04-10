@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.alipay.sofa.registry.jdbc.mapper.InterfaceAppsIndexMapper">
+
+    <resultMap type="com.alipay.sofa.registry.jdbc.domain.InterfaceAppsIndexDomain" id="interfaceAppsResultMap">
+        <id property="id" column="id" javaType="long" jdbcType="BIGINT"/>
+        <result property="dataCenter" column="data_center" javaType="java.lang.String" jdbcType="VARCHAR"/>
+        <result property="interfaceName" column="interface_name" javaType="java.lang.String" jdbcType="VARCHAR"/>
+        <result property="appName" column="app_name" javaType="java.lang.String" jdbcType="VARCHAR"/>
+        <result property="revision" column="revision" javaType="java.lang.String" jdbcType="VARCHAR"/>
+        <result property="hashcode" column="hashcode" javaType="java.lang.String" jdbcType="VARCHAR"/>
+        <result property="gmtCreate" column="gmt_create" javaType="java.sql.Timestamp" jdbcType="TIMESTAMP"/>
+        <result property="gmtModify" column="gmt_modified" javaType="java.sql.Timestamp" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <update id="update" parameterType="com.alipay.sofa.registry.jdbc.domain.InterfaceAppsIndexDomain">
+        <![CDATA[
+              update /*+ QUERY_TIMEOUT(3000000) */ interface_apps_index set gmt_modified = NOW(6)
+              WHERE data_center = #{dataCenter} AND app_name = #{appName} AND hashcode = #{hashcode} AND reference = true
+        ]]>
+    </update>
+
+    <insert id="replace" parameterType="com.alipay.sofa.registry.jdbc.domain.InterfaceAppsIndexDomain">
+        <![CDATA[
+            replace /*+ QUERY_TIMEOUT(3000000) */ into interface_apps_index(data_center, interface_name, app_name, reference, hashcode, gmt_create,
+            gmt_modified)
+            values (#{dataCenter},#{interfaceName},#{appName}, #{reference} , #{hashcode}, NOW(6), NOW(6))
+        ]]>
+    </insert>
+
+    <select id="batchQueryByInterface" resultMap="interfaceAppsResultMap">
+        select /*+ QUERY_TIMEOUT(5000000) */ * from interface_apps_index where data_center = #{dataCenter}
+        <if test="interfaceNames != null and interfaceNames.size() > 0">
+            and interface_name in
+            <foreach collection="interfaceNames" index="index" item="item" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+    </select>
+
+
+    <select id="queryLargeThan" resultMap="interfaceAppsResultMap">
+    <![CDATA[
+        select /*+ QUERY_TIMEOUT(3000000) */ * from interface_apps_index where data_center = #{dataCenter} and id > #{maxId} order by id limit #{limitCount}
+    ]]>
+    </select>
+
+    <select id="getExpired" resultMap="interfaceAppsResultMap">
+<![CDATA[
+        select /*+ QUERY_TIMEOUT(3000000) */ * from interface_apps_index where data_center = #{dataCenter} and gmt_modified < #{beforeTime}
+        and reference=true limit #{limit}
+]]>
+    </select>
+</mapper>
